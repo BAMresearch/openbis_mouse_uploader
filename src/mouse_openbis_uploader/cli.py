@@ -118,5 +118,5 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     uploader = OpenBISUploader(ds=ds, config=cfg, logger=logger, dry_run=args.dry_run, failure_recorder=failure_recorder)
     uploader.process_entries(reader)
-    logger.info(f"Upload run completed. Failures recorded (if any) to: {args.failure_file}")
+    logger.info("Upload run completed. Failures recorded (if any) to: %s", failure_recorder.path)
     return 0

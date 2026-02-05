@@ -15,7 +15,7 @@ authors = [
 dependencies = [
   "attrs>=23.2.0",
   "pybis>=1.36.0",
-  "logbook2mouse",
+  "logbook2mouse @ git+https://github.com/BAMresearch/logbook2mouse.git",
   "jupyter-analysis-tools",
 ]
 

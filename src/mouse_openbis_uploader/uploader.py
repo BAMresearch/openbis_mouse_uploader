@@ -47,7 +47,7 @@ class OpenBISUploader:
             # Still log something so it isn't silent
             self.log.error("Failure (no recorder configured): %s %s", rec.stage, rec.message)
             return
-        self._record_failure(rec)
+        self.failures.record(rec)
 
     # ---------- identifiers ----------
 
@@ -153,15 +153,26 @@ class OpenBISUploader:
                 return obj
             except Exception as e:
                 self.log.exception("Create failed for %s where=%s", object_type, where)
-                record = ctx or FailureRecord(
-                    stage=f"upsert.create.{object_type}",
-                    ymd=self.cfg.ymd_filter,
-                    batchnum=str(props.get("$name", "")),
-                    proposal=str(props.get("$name", "")),
-                    identifier=None,
-                    message=str(e),
-                    extra={"where": dict(where), "props_keys": sorted(props.keys())},
-                )
+                if ctx is not None:
+                    record = FailureRecord(
+                        stage=f"upsert.create.{object_type}",   # or update.*
+                        ymd=ctx.ymd,
+                        batchnum=ctx.batchnum,
+                        proposal=ctx.proposal,
+                        identifier=None,
+                        message=str(e),
+                        extra={"where": dict(where), "props_keys": sorted(props.keys())},
+                    )
+                else:
+                    record = FailureRecord(
+                        stage=f"upsert.create.{object_type}",
+                        ymd=self.cfg.ymd_filter,
+                        batchnum=str(props.get("$name", "")),
+                        proposal=str(props.get("$name", "")),
+                        identifier=None,
+                        message=str(e),
+                        extra={"where": dict(where), "props_keys": sorted(props.keys())},
+                    )
                 self._record_failure(record)
                 return None
 
@@ -180,15 +191,26 @@ class OpenBISUploader:
             return obj
         except Exception as e:
             self.log.exception("Update failed for %s where=%s", object_type, where)
-            record = ctx or FailureRecord(
-                stage=f"upsert.update.{object_type}",
-                ymd=self.cfg.ymd_filter,
-                batchnum=str(props.get("$name", "")),
-                proposal=str(props.get("$name", "")),
-                identifier=getattr(obj, "identifier", None),
-                message=str(e),
-                extra={"where": dict(where), "props_keys": sorted(props.keys())},
-            )
+            if ctx is not None:
+                record = FailureRecord(
+                    stage=f"upsert.update.{object_type}",   # or update.*
+                    ymd=ctx.ymd,
+                    batchnum=ctx.batchnum,
+                    proposal=ctx.proposal,
+                    identifier=None,
+                    message=str(e),
+                    extra={"where": dict(where), "props_keys": sorted(props.keys())},
+                )
+            else:
+                record = FailureRecord(
+                    stage=f"upsert.update.{object_type}",
+                    ymd=self.cfg.ymd_filter,
+                    batchnum=str(props.get("$name", "")),
+                    proposal=str(props.get("$name", "")),
+                    identifier=getattr(obj, "identifier", None),
+                    message=str(e),
+                    extra={"where": dict(where), "props_keys": sorted(props.keys())},
+                )
             self._record_failure(record)
             return None
 
@@ -284,6 +306,19 @@ class OpenBISUploader:
                     collection=people_collection,
                     ctx=ctx,
                 )
+                if person_leader is None:
+                    self._record_failure(
+                        FailureRecord(
+                            stage="entry.missing.PERSON",
+                            ymd=ctx.ymd,
+                            batchnum=ctx.batchnum,
+                            proposal=ctx.proposal,
+                            identifier=None,
+                            message="PERSON upsert failed; skipping entry.",
+                            extra={"object_type": "PERSON"},
+                        )
+                    )
+                    continue
 
                 user_bam = self._find_bam_person_by_name(entry.project.name)
 
@@ -307,6 +342,19 @@ class OpenBISUploader:
                     collection=proposal_collection,
                     ctx=ctx,
                 )
+                if proposal_obj is None:
+                    self._record_failure(
+                        FailureRecord(
+                            stage="entry.missing.PROJECT",
+                            ymd=ctx.ymd,
+                            batchnum=ctx.batchnum,
+                            proposal=ctx.proposal,
+                            identifier=None,
+                            message="PROJECT upsert failed; skipping entry.",
+                            extra={"object_type": "PROJECT"},
+                        )
+                    )
+                    continue
 
                 sample_name = f"{entry.proposal}-{entry.sampleid}"
                 sample_obj = self.upsert_object(
@@ -330,6 +378,19 @@ class OpenBISUploader:
                     collection=proposal_collection,
                     ctx=ctx,
                 )
+                if sample_obj is None:
+                    self._record_failure(
+                        FailureRecord(
+                            stage="entry.missing.SAMPLE",
+                            ymd=ctx.ymd,
+                            batchnum=ctx.batchnum,
+                            proposal=ctx.proposal,
+                            identifier=None,
+                            message="SAMPLE upsert failed; skipping entry.",
+                            extra={"object_type": "SAMPLE"},
+                        )
+                    )
+                    continue
 
                 responsible_person = self.ds.get_object(bam_person_identifier(entry.user)).permId
                 meas_obj = self.upsert_object(
@@ -352,6 +413,19 @@ class OpenBISUploader:
                     collection=proposal_collection,
                     ctx=ctx,
                 )
+                if meas_obj is None:
+                    self._record_failure(
+                        FailureRecord(
+                            stage="entry.missing.MOUSE_MEASUREMENT",
+                            ymd=ctx.ymd,
+                            batchnum=ctx.batchnum,
+                            proposal=ctx.proposal,
+                            identifier=None,
+                            message="Measurement upsert failed; skipping entry.",
+                            extra={"object_type": "EXPERIMENTAL_STEP.SAXS_MEASUREMENT.MOUSE_MEASUREMENT"},
+                        )
+                    )
+                    continue
 
                 if self.dry_run:
                     self.log.info("[dry-run] Would link parents for %s", measurement_name)
@@ -363,14 +437,14 @@ class OpenBISUploader:
                 self.log.info("Finished idx=%d: %s", idx, measurement_name)
             except Exception as e:
                 self.log.exception("Unexpected entry failure idx=%d ymd=%s batch=%s", idx, entry.ymd, entry.batchnum)
-                record = ctx or FailureRecord(
+                record = FailureRecord(
                     stage="entry.unexpected",
                     ymd=str(entry.ymd),
                     batchnum=str(entry.batchnum),
                     proposal=str(entry.proposal),
                     identifier=None,
                     message=str(e),
-                    extra={},
+                    extra={"idx": idx},
                 )
                 self._record_failure(record)
                 continue
@@ -390,11 +464,25 @@ class OpenBISUploader:
             return None
 
     def _upload_entry_datasets(self, entry: Any, measurement_name: str) -> None:
-        meas_obj = self.ds.get_objects(
+        meas_objs = self.ds.get_objects(
             type="EXPERIMENTAL_STEP.SAXS_MEASUREMENT.MOUSE_MEASUREMENT",
             where={"$name": measurement_name},
             props=["$name"],
-        )[0]
+        )
+        if not meas_objs:
+            self._record_failure(
+                FailureRecord(
+                    stage="dataset.missing_measurement",
+                    ymd=str(entry.ymd),
+                    batchnum=str(entry.batchnum),
+                    proposal=str(entry.proposal),
+                    identifier=None,
+                    message="Measurement object not found; skipping dataset upload.",
+                    extra={"measurement_name": measurement_name},
+                )
+            )
+            return
+        meas_obj = meas_objs[0]
 
         ymd = str(entry.ymd)
         base = self.cfg.base_data_path / ymd[:4] / ymd
