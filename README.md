@@ -25,25 +25,25 @@ The CLI uses a token stored in a file (default: `~/.datastore_token`).
 Minimal (only required argument is the YMD code):
 
 ```bash
-mouse-uploader 20251220
+openbis-mouse-uploader 20251220
 ```
 
 More verbose logging:
 
 ```bash
-mouse-uploader 20251220 --log-level DEBUG
+openbis-mouse-uploader 20251220 --log-level DEBUG
 ```
 
 Continue from a later row in the logbook:
 
 ```bash
-mouse-uploader 20251220 --start-row 50
+openbis-mouse-uploader 20251220 --start-row 50
 ```
 
 Dry-run (no writes; logs intended actions):
 
 ```bash
-mouse-uploader 20251220 --dry-run
+openbis-mouse-uploader 20251220 --dry-run
 ```
 
 ## Notes on behavior
@@ -55,13 +55,23 @@ mouse-uploader 20251220 --dry-run
 
 ## Development
 
-- Formatting/linting: `ruff`
+- Formatting: `black`
+- Linting: `flake8`
 - Typing: `mypy` (configured to ignore missing third-party stubs)
+- Pre-commit: `pre-commit`
+
+Setup:
+
+```bash
+pip install -e ".[dev]"
+pre-commit install
+```
 
 Example:
 
 ```bash
-ruff check .
+black .
+flake8
 mypy src
 pytest
 ```

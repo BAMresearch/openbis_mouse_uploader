@@ -15,9 +15,7 @@ class UploadConfig:
     # Optional
     ds_username: str = "bpauw"
 
-    logbook_path: Path = Path(
-        "/mnt/vsi-db/Measurements/SAXS002/logbooks/Logbook_MOUSE_Dataprocessing.xlsx"
-    )
+    logbook_path: Path = Path("/mnt/vsi-db/Measurements/SAXS002/logbooks/Logbook_MOUSE_Dataprocessing.xlsx")
     proposal_base_path: Path = Path("/mnt/vsi-db/Proposals/SAXS002/")
     base_data_path: Path = Path("/mnt/vsi-db/Measurements/SAXS002/data")
     datastore_token_path: Path = Path.home() / ".datastore_token"

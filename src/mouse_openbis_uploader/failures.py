@@ -8,7 +8,7 @@ from typing import Any, Optional
 
 @dataclass(slots=True)
 class FailureRecord:
-    stage: str                 # e.g. "upsert.PROJECT", "upload.RAW_DATA"
+    stage: str  # e.g. "upsert.PROJECT", "upload.RAW_DATA"
     ymd: str
     batchnum: str
     proposal: str
@@ -22,6 +22,7 @@ class FailureRecorder:
     Appends one JSON object per failure to a .jsonl file.
     Designed for large batch runs (streaming write, no big memory use).
     """
+
     def __init__(self, path: Path) -> None:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)

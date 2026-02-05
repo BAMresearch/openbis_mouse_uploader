@@ -5,15 +5,14 @@ import logging
 from pathlib import Path
 from typing import Optional, Sequence
 
+from logbook2mouse.logbook_reader import Logbook2MouseReader
 from pybis import Openbis
 
-from logbook2mouse.logbook_reader import Logbook2MouseReader
-
 from .config import UploadConfig
+from .failures import FailureRecorder
 from .logging_utils import setup_logger
 from .uploader import OpenBISUploader
 from .utils import read_token, validate_ymd
-from .failures import FailureRecorder
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -25,27 +24,71 @@ def build_parser() -> argparse.ArgumentParser:
 
     p.add_argument("ymd", type=validate_ymd, help="Measurement day code, e.g. 20251220")
 
-    p.add_argument("--ds-username", default=d.ds_username, help=f"Username label for logging (default: {d.ds_username})")
-    p.add_argument("--logbook-path", type=Path, default=d.logbook_path, help=f"Excel logbook (default: {d.logbook_path})")
-    p.add_argument("--proposal-base-path", type=Path, default=d.proposal_base_path, help=f"Proposal base path (default: {d.proposal_base_path})")
-    p.add_argument("--base-data-path", type=Path, default=d.base_data_path, help=f"Base data path (default: {d.base_data_path})")
-    p.add_argument("--datastore-token-path", type=Path, default=d.datastore_token_path, help=f"Token file path (default: {d.datastore_token_path})")
+    p.add_argument(
+        "--ds-username", default=d.ds_username, help=f"Username label for logging (default: {d.ds_username})"
+    )
+    p.add_argument(
+        "--logbook-path", type=Path, default=d.logbook_path, help=f"Excel logbook (default: {d.logbook_path})"
+    )
+    p.add_argument(
+        "--proposal-base-path",
+        type=Path,
+        default=d.proposal_base_path,
+        help=f"Proposal base path (default: {d.proposal_base_path})",
+    )
+    p.add_argument(
+        "--base-data-path", type=Path, default=d.base_data_path, help=f"Base data path (default: {d.base_data_path})"
+    )
+    p.add_argument(
+        "--datastore-token-path",
+        type=Path,
+        default=d.datastore_token_path,
+        help=f"Token file path (default: {d.datastore_token_path})",
+    )
 
     p.add_argument("--space-name", default=d.space_name, help=f"Space name (default: {d.space_name})")
-    p.add_argument("--projects-prepend", default=d.projects_prepend, help=f"Project prefix (default: {d.projects_prepend})")
+    p.add_argument(
+        "--projects-prepend", default=d.projects_prepend, help=f"Project prefix (default: {d.projects_prepend})"
+    )
     p.add_argument("--start-row", type=int, default=d.start_row, help=f"Start row index (default: {d.start_row})")
 
     p.add_argument("--server-url", default=d.server_url, help=f"OpenBIS URL (default: {d.server_url})")
-    p.add_argument("--sleep-seconds-between-ops", type=float, default=d.sleep_seconds_between_ops, help=f"Sleep between ops (default: {d.sleep_seconds_between_ops})")
-    p.add_argument("--sleep-seconds-between-datasets", type=float, default=d.sleep_seconds_between_datasets, help=f"Sleep between datasets (default: {d.sleep_seconds_between_datasets})")
+    p.add_argument(
+        "--sleep-seconds-between-ops",
+        type=float,
+        default=d.sleep_seconds_between_ops,
+        help=f"Sleep between ops (default: {d.sleep_seconds_between_ops})",
+    )
+    p.add_argument(
+        "--sleep-seconds-between-datasets",
+        type=float,
+        default=d.sleep_seconds_between_datasets,
+        help=f"Sleep between datasets (default: {d.sleep_seconds_between_datasets})",
+    )
 
-    p.add_argument("--instrument-name-pattern", default=d.instrument_name_pattern, help=f"Instrument name pattern (default: {d.instrument_name_pattern})")
-    p.add_argument("--people-collection-prefix", default=d.people_collection_prefix, help=f"People collection prefix (default: {d.people_collection_prefix})")
+    p.add_argument(
+        "--instrument-name-pattern",
+        default=d.instrument_name_pattern,
+        help=f"Instrument name pattern (default: {d.instrument_name_pattern})",
+    )
+    p.add_argument(
+        "--people-collection-prefix",
+        default=d.people_collection_prefix,
+        help=f"People collection prefix (default: {d.people_collection_prefix})",
+    )
 
-    p.add_argument("--raw-dataset-type", default=d.raw_dataset_type, help=f"Raw dataset type (default: {d.raw_dataset_type})")
-    p.add_argument("--processed-dataset-type", default=d.processed_dataset_type, help=f"Processed dataset type (default: {d.processed_dataset_type})")
+    p.add_argument(
+        "--raw-dataset-type", default=d.raw_dataset_type, help=f"Raw dataset type (default: {d.raw_dataset_type})"
+    )
+    p.add_argument(
+        "--processed-dataset-type",
+        default=d.processed_dataset_type,
+        help=f"Processed dataset type (default: {d.processed_dataset_type})",
+    )
     p.add_argument("--log-file", type=Path, default=None, help="Log file path (default: None, logs to stdout only)")
-    p.add_argument("--failure-file", type=Path, default=None, help="Failure records file (default: upload_failures.jsonl)")
+    p.add_argument(
+        "--failure-file", type=Path, default=None, help="Failure records file (default: upload_failures.jsonl)"
+    )
 
     p.add_argument(
         "--log-level",
@@ -116,7 +159,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     failure_recorder = FailureRecorder(args.failure_file or Path(f"upload_failures_{args.ymd}.jsonl"))
 
-    uploader = OpenBISUploader(ds=ds, config=cfg, logger=logger, dry_run=args.dry_run, failure_recorder=failure_recorder)
+    uploader = OpenBISUploader(
+        ds=ds, config=cfg, logger=logger, dry_run=args.dry_run, failure_recorder=failure_recorder
+    )
     uploader.process_entries(reader)
     logger.info("Upload run completed. Failures recorded (if any) to: %s", failure_recorder.path)
     return 0

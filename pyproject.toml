@@ -19,6 +19,14 @@ dependencies = [
   "jupyter-analysis-tools",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "black>=24.0.0",
+  "flake8>=7.0.0",
+  "pre-commit>=3.0.0",
+  "pytest>=7.0.0",
+]
+
 [project.urls]
 Repository = "https://example.invalid/replace-me"
 
@@ -31,12 +39,12 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py311"
+[tool.black]
+line-length = 120
+target-version = ["py311"]
 
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+[tool.flake8]
+max-line-length = 120
 
 [tool.mypy]
 python_version = "3.11"
@@ -44,3 +52,11 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+
+[tool.isort]
+profile = "black"
+line_length = 120
+group_by_package = true
+known_first_party = "mouse_openbis_uploader"
+ensure_newline_before_comments = true
+extend_skip = ["ci/templates", ".ipynb_checkpoints"]

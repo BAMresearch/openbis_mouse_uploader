@@ -7,13 +7,12 @@ import time
 from pathlib import Path
 from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
+from logbook2mouse.logbook_reader import Logbook2MouseReader
 from pybis import Openbis
 
-from logbook2mouse.logbook_reader import Logbook2MouseReader
-
 from .config import UploadConfig
-from .utils import bam_person_identifier, split_name
 from .failures import FailureRecord, FailureRecorder
+from .utils import bam_person_identifier, split_name
 
 
 class OpenBISUploader:
@@ -67,9 +66,7 @@ class OpenBISUploader:
         try:
             return self.ds.get_project(project_id)
         except ValueError as e:
-            raise RuntimeError(
-                f"Project does not exist in OpenBIS: {project_id}. Create it first."
-            ) from e
+            raise RuntimeError(f"Project does not exist in OpenBIS: {project_id}. Create it first.") from e
 
     def get_or_create_collection(self, project: Any, project_code: str, code: str) -> Any:
         identifier = self.collection_identifier(project_code, code)
@@ -118,7 +115,9 @@ class OpenBISUploader:
         if len(objs) > 1:
             self.log.warning(
                 "Duplicates found (unexpected) for type=%s where=%s count=%d; deleting permanently.",
-                object_type, where, len(objs),
+                object_type,
+                where,
+                len(objs),
             )
             if self.dry_run:
                 self.log.info(
@@ -155,7 +154,7 @@ class OpenBISUploader:
                 self.log.exception("Create failed for %s where=%s", object_type, where)
                 if ctx is not None:
                     record = FailureRecord(
-                        stage=f"upsert.create.{object_type}",   # or update.*
+                        stage=f"upsert.create.{object_type}",  # or update.*
                         ymd=ctx.ymd,
                         batchnum=ctx.batchnum,
                         proposal=ctx.proposal,
@@ -193,7 +192,7 @@ class OpenBISUploader:
             self.log.exception("Update failed for %s where=%s", object_type, where)
             if ctx is not None:
                 record = FailureRecord(
-                    stage=f"upsert.update.{object_type}",   # or update.*
+                    stage=f"upsert.update.{object_type}",  # or update.*
                     ymd=ctx.ymd,
                     batchnum=ctx.batchnum,
                     proposal=ctx.proposal,
@@ -259,7 +258,7 @@ class OpenBISUploader:
     # ---------- orchestration ----------
 
     def process_entries(self, reader: Logbook2MouseReader) -> None:
-        entries = reader.entries[self.cfg.start_row:]
+        entries = reader.entries[self.cfg.start_row :]
         self.log.info("Entries available=%d; processing from start_row=%d", len(reader.entries), self.cfg.start_row)
 
         instrument = self.find_instrument()
