@@ -4,8 +4,9 @@ import filecmp
 import logging
 import tempfile
 import time
+from collections.abc import Mapping, MutableMapping, Sequence
 from pathlib import Path
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from typing import Any
 
 from logbook2mouse.logbook_reader import Logbook2MouseReader
 from pybis import Openbis
@@ -75,7 +76,7 @@ class OpenBISUploader:
         except (KeyError, ValueError):
             if self.dry_run:
                 self.log.info("[dry-run] Would create collection: %s", identifier)
-                raise RuntimeError(f"[dry-run] Collection does not exist yet: {identifier}")
+                raise RuntimeError(f"[dry-run] Collection does not exist yet: {identifier}") from None
 
             col = self.ds.new_collection(code=code, type="COLLECTION", project=project)
             col.save()
@@ -108,7 +109,7 @@ class OpenBISUploader:
         project: Any,
         collection: Any,
         space: Any,
-        ctx: Optional[FailureRecord] = None,
+        ctx: FailureRecord | None = None,
     ) -> Any:
         objs = self.ds.get_objects(type=object_type, where=dict(where), project=project.permId)
 
@@ -264,7 +265,6 @@ class OpenBISUploader:
         instrument = self.find_instrument()
 
         for idx, entry in enumerate(entries, start=self.cfg.start_row):
-
             ctx = FailureRecord(
                 stage="",
                 ymd=str(entry.ymd),
@@ -450,7 +450,7 @@ class OpenBISUploader:
 
     # ---------- helpers ----------
 
-    def _find_bam_person_by_name(self, full_name: str) -> Optional[Any]:
+    def _find_bam_person_by_name(self, full_name: str) -> Any | None:
         search_string = f"*{full_name.replace(' ', '*')}*"
         matches = self.ds.get_objects(type="PERSON", where={"$name": search_string}, props=["$name"])
         if not matches:

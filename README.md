@@ -55,8 +55,7 @@ openbis-mouse-uploader 20251220 --dry-run
 
 ## Development
 
-- Formatting: `black`
-- Linting: `flake8`
+- Formatting/linting: `ruff`
 - Typing: `mypy` (configured to ignore missing third-party stubs)
 - Pre-commit: `pre-commit`
 
@@ -70,8 +69,8 @@ pre-commit install
 Example:
 
 ```bash
-black .
-flake8
+ruff format .
+ruff check .
 mypy src
 pytest
 ```

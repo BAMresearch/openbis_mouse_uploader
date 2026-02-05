@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence
 
 from logbook2mouse.logbook_reader import Logbook2MouseReader
 from pybis import Openbis
@@ -119,7 +119,7 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise SystemExit(f"Token file not found: {args.datastore_token_path}")
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     _validate_args(args)

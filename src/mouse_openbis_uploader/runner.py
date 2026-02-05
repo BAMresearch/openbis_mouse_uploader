@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 
-from pybis import Openbis
 from logbook2mouse.logbook_reader import Logbook2MouseReader
+from pybis import Openbis
 
 from .config import UploadConfig
 from .logging_utils import setup_logger

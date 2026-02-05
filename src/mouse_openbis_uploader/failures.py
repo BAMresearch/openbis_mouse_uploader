@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -12,7 +12,7 @@ class FailureRecord:
     ymd: str
     batchnum: str
     proposal: str
-    identifier: Optional[str]  # openbis identifier if known
+    identifier: str | None  # openbis identifier if known
     message: str
     extra: dict[str, Any]
 
