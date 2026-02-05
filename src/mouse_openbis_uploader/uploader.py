@@ -42,6 +42,13 @@ class OpenBISUploader:
         self.failures = failure_recorder
         self.space = self.ds.get_space(self.cfg.space_name)
 
+    def _record_failure(self, rec: FailureRecord) -> None:
+        if self.failures is None:
+            # Still log something so it isn't silent
+            self.log.error("Failure (no recorder configured): %s %s", rec.stage, rec.message)
+            return
+        self._record_failure(rec)
+
     # ---------- identifiers ----------
 
     def project_code_for_proposal(self, proposal: str) -> str:
@@ -104,6 +111,7 @@ class OpenBISUploader:
         project: Any,
         collection: Any,
         space: Any,
+        ctx: Optional[FailureRecord] = None,
     ) -> Any:
         objs = self.ds.get_objects(type=object_type, where=dict(where), project=project.permId)
 
@@ -145,7 +153,7 @@ class OpenBISUploader:
                 return obj
             except Exception as e:
                 self.log.exception("Create failed for %s where=%s", object_type, where)
-                self.failures.record(FailureRecord(
+                record = ctx or FailureRecord(
                     stage=f"upsert.create.{object_type}",
                     ymd=self.cfg.ymd_filter,
                     batchnum=str(props.get("$name", "")),
@@ -153,7 +161,8 @@ class OpenBISUploader:
                     identifier=None,
                     message=str(e),
                     extra={"where": dict(where), "props_keys": sorted(props.keys())},
-                ))
+                )
+                self._record_failure(record)
                 return None
 
         obj = objs[0]
@@ -171,7 +180,7 @@ class OpenBISUploader:
             return obj
         except Exception as e:
             self.log.exception("Update failed for %s where=%s", object_type, where)
-            self.failures.record(FailureRecord(
+            record = ctx or FailureRecord(
                 stage=f"upsert.update.{object_type}",
                 ymd=self.cfg.ymd_filter,
                 batchnum=str(props.get("$name", "")),
@@ -179,7 +188,8 @@ class OpenBISUploader:
                 identifier=getattr(obj, "identifier", None),
                 message=str(e),
                 extra={"where": dict(where), "props_keys": sorted(props.keys())},
-            ))
+            )
+            self._record_failure(record)
             return None
 
     # ---------- dataset upload ----------
@@ -233,6 +243,17 @@ class OpenBISUploader:
         instrument = self.find_instrument()
 
         for idx, entry in enumerate(entries, start=self.cfg.start_row):
+
+            ctx = FailureRecord(
+                stage="",
+                ymd=str(entry.ymd),
+                batchnum=str(entry.batchnum),
+                proposal=str(entry.proposal),
+                identifier=None,
+                message="",
+                extra={},
+            )
+
             if self.cfg.ymd_filter != str(entry.ymd):
                 self.log.debug("Skipping idx=%d: ymd=%s (filter=%s)", idx, entry.ymd, self.cfg.ymd_filter)
                 continue
@@ -261,6 +282,7 @@ class OpenBISUploader:
                     space=self.space,
                     project=project,
                     collection=people_collection,
+                    ctx=ctx,
                 )
 
                 user_bam = self._find_bam_person_by_name(entry.project.name)
@@ -283,6 +305,7 @@ class OpenBISUploader:
                     space=self.space,
                     project=project,
                     collection=proposal_collection,
+                    ctx=ctx,
                 )
 
                 sample_name = f"{entry.proposal}-{entry.sampleid}"
@@ -305,6 +328,7 @@ class OpenBISUploader:
                     space=self.space,
                     project=project,
                     collection=proposal_collection,
+                    ctx=ctx,
                 )
 
                 responsible_person = self.ds.get_object(bam_person_identifier(entry.user)).permId
@@ -326,6 +350,7 @@ class OpenBISUploader:
                     space=self.space,
                     project=project,
                     collection=proposal_collection,
+                    ctx=ctx,
                 )
 
                 if self.dry_run:
@@ -338,7 +363,7 @@ class OpenBISUploader:
                 self.log.info("Finished idx=%d: %s", idx, measurement_name)
             except Exception as e:
                 self.log.exception("Unexpected entry failure idx=%d ymd=%s batch=%s", idx, entry.ymd, entry.batchnum)
-                self.failures.record(FailureRecord(
+                record = ctx or FailureRecord(
                     stage="entry.unexpected",
                     ymd=str(entry.ymd),
                     batchnum=str(entry.batchnum),
@@ -346,7 +371,8 @@ class OpenBISUploader:
                     identifier=None,
                     message=str(e),
                     extra={},
-                ))
+                )
+                self._record_failure(record)
                 continue
 
     # ---------- helpers ----------

@@ -17,9 +17,9 @@ from .failures import FailureRecorder
 
 
 def build_parser() -> argparse.ArgumentParser:
-    d = UploadConfig()  # defaults from class
+    d = UploadConfig(ymd_filter="19700101")  # dummy for defaults
     p = argparse.ArgumentParser(
-        prog="mouse-uploader",
+        prog="openbis-mouse-uploader",
         description="Upload MOUSE measurement batches to OpenBIS using a YMD filter.",
     )
 
@@ -45,7 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--raw-dataset-type", default=d.raw_dataset_type, help=f"Raw dataset type (default: {d.raw_dataset_type})")
     p.add_argument("--processed-dataset-type", default=d.processed_dataset_type, help=f"Processed dataset type (default: {d.processed_dataset_type})")
     p.add_argument("--log-file", type=Path, default=None, help="Log file path (default: None, logs to stdout only)")
-    p.add_argument("--failure-file", type=Path, default=Path("upload_failures.jsonl"), help="Failure records file (default: upload_failures.jsonl)")
+    p.add_argument("--failure-file", type=Path, default=None, help="Failure records file (default: upload_failures.jsonl)")
 
     p.add_argument(
         "--log-level",
@@ -82,7 +82,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     _validate_args(args)
 
     log_level = getattr(logging, args.log_level.upper(), logging.INFO)
-    logger = setup_logger(level=log_level)
+    logger = setup_logger(level=log_level, log_file=args.log_file)
 
     cfg = UploadConfig(
         ymd_filter=args.ymd,
@@ -114,8 +114,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         load_all=True,
     )
 
-    logger = setup_logger(level=log_level, log_file=args.log_file)
-    failure_recorder = FailureRecorder(args.failure_file)
+    failure_recorder = FailureRecorder(args.failure_file or Path(f"upload_failures_{args.ymd}.jsonl"))
 
     uploader = OpenBISUploader(ds=ds, config=cfg, logger=logger, dry_run=args.dry_run, failure_recorder=failure_recorder)
     uploader.process_entries(reader)
