@@ -4,6 +4,10 @@ A small CLI tool to upload MOUSE SAXS measurement batches to OpenBIS based on a 
 (e.g. `20251220`). It reads the measurement metadata from the Excel logbook and uploads/updates
 OpenBIS objects and datasets (RAW and PROCESSED).
 
+The general structure is as follows: 
+<img width="783" height="680" alt="image" src="https://github.com/user-attachments/assets/ef2535c2-af26-4845-a6b0-f5d0f582fc91" />
+
+
 ## Install (editable)
 
 ```bash
